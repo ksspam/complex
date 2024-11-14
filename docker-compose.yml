@@ -1,0 +1,53 @@
+version: '3'
+services:
+  postgres:
+    image: "postgres:latest"
+    environment:
+      - POSTGRES_PASSWORD=s12345
+  redis:
+    image: "redis:latest"
+  nginx-webserver:
+    depends_on:
+      - api
+      - client
+    restart: always
+    build:
+      context: ./nginx
+    ports:
+      - "8080:80"
+  api:
+    depends_on:
+      - postgres
+      - redis
+    build: 
+      context: ./server
+    volumes:
+      - /app/node_modules
+      - ./server:/app
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PGUSER=postgres
+      - PGHOST=postgres
+      - PGDATABASE=postgres
+      - PGPASSWORD=s12345
+      - PGPORT=5432
+  client:
+    build: 
+      context: ./client
+    volumes:
+      - /app/node_modules
+      - ./client/:/app
+    environment:
+      - WDS_SOCKET_PORT=0
+  worker:
+    depends_on:
+      - api
+    build:
+      context: ./worker
+    volumes:
+      - /app/node_modules
+      - ./worker/:/app
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
